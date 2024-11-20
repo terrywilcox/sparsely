@@ -48,7 +48,7 @@ all() ->
     ].
 
 assertError(Error) ->
-	?assertMatch({error, "no matching character"}, Error).
+	?assertEqual({error, "no matching character"}, Error).
 
 parse_no_chars(_Config) ->
 	Parser = sparsely:character("a"),
@@ -57,25 +57,25 @@ parse_no_chars(_Config) ->
 parse_single_char(_Config) ->
 	Parser = sparsely:character("a"),
 	Result = Parser("ated"),
-	?assertMatch({ok, $a, "ted"}, Result), 
+	?assertEqual({ok, $a, "ted"}, Result), 
 
 	assertError(Parser("zaz")).
 
 parse_char_from_set(_Config) ->
 	Parser = sparsely:character("abcde"),
 	Result = Parser("bted"),
-	?assertMatch({ok, $b, "ted"}, Result), 
+	?assertEqual({ok, $b, "ted"}, Result), 
 
 	assertError(Parser("zaz")).
 
 parse_one_of(_Config) ->
-	Parser = sparsely:one_of([?DIGIT(), ?LOWERCASE()]),
+	Parser = sparsely:one_of([?DIGIT, ?LOWERCASE]),
 
 	Result = Parser("3a9"),
-	?assertMatch({ok, $3, "a9"}, Result), 
+	?assertEqual({ok, $3, "a9"}, Result), 
 
 	Result2 = Parser("a69"),
-	?assertMatch({ok, $a, "69"}, Result2), 
+	?assertEqual({ok, $a, "69"}, Result2), 
 
 	assertError(Parser("Zaz")).
 
@@ -84,80 +84,80 @@ parse_one_of_none(_Config) ->
 	assertError(Parser("zaz")).
 
 parse_repeat(_Config) ->
-	Parser = sparsely:repeat(?DIGIT()),
+	Parser = sparsely:repeat(?DIGIT),
 
 	Result = Parser("369"),
-	?assertMatch({ok, "369", ""}, Result), 
+	?assertEqual({ok, "369", ""}, Result), 
 
 	Result2 = Parser("369999x6"),
-	?assertMatch({ok, "369999", "x6"}, Result2), 
+	?assertEqual({ok, "369999", "x6"}, Result2), 
 
 	assertError(Parser("zaz")).
 
 parse_chain(_Config) ->
-	Digits = ?DIGIT(),
-	Lower = ?LOWERCASE(),
-	Parser = sparsely:chain([Digits, Lower, Digits, Digits]),
+	Digit = ?DIGIT,
+	Lower = ?LOWERCASE,
+	Parser = sparsely:chain([Digit, Lower, Digit, Digit]),
 
 	Result = Parser("3x69"),
-	?assertMatch({ok, "3x69", ""}, Result), 
+	?assertEqual({ok, "3x69", ""}, Result), 
 
 	Result2 = Parser("3x69999x6"),
-	?assertMatch({ok, "3x69", "999x6"}, Result2), 
+	?assertEqual({ok, "3x69", "999x6"}, Result2), 
 
 	assertError(Parser("3x6")),
 	assertError(Parser("x66zaz")).
 
 parse_optional(_Config) ->
-	Digits = ?DIGIT(),
-	Lower = ?LOWERCASE(),
-	Optional = sparsely:optional(Digits),
-	Parser = sparsely:chain([Optional, Lower, Digits, Digits]),
+	Digit = ?DIGIT,
+	Lower = ?LOWERCASE,
+	Optional = sparsely:optional(Digit),
+	Parser = sparsely:chain([Optional, Lower, Digit, Digit]),
 
 	Result = Parser("x69"),
-	?assertMatch({ok, "x69", ""}, Result), 
+	?assertEqual({ok, "x69", ""}, Result), 
 
 	Result2 = Parser("3x69"),
-	?assertMatch({ok, "3x69", ""}, Result2), 
+	?assertEqual({ok, "3x69", ""}, Result2), 
 
 	Result3 = Parser("3x69999x6"),
-	?assertMatch({ok, "3x69", "999x6"}, Result3), 
+	?assertEqual({ok, "3x69", "999x6"}, Result3), 
 
 	Result4 = Parser("x69999x6"),
-	?assertMatch({ok, "x69", "999x6"}, Result4), 
+	?assertEqual({ok, "x69", "999x6"}, Result4), 
 
 	assertError(Parser("3x6")),
 	assertError(Parser("X66zaz")).
 
 parse_optional_with_default(_Config) ->
-	Digits = ?DIGIT(),
-	Lower = ?LOWERCASE(),
-	Optional = sparsely:optional(Digits, $N),
-	Parser = sparsely:chain([Optional, Lower, Digits, Digits]),
+	Digit = ?DIGIT,
+	Lower = ?LOWERCASE,
+	Optional = sparsely:optional(Digit, $N),
+	Parser = sparsely:chain([Optional, Lower, Digit, Digit]),
 
 	Result = Parser("x69"),
-	?assertMatch({ok, "Nx69", ""}, Result), 
+	?assertEqual({ok, "Nx69", ""}, Result), 
 
 	Result2 = Parser("3x69"),
-	?assertMatch({ok, "3x69", ""}, Result2), 
+	?assertEqual({ok, "3x69", ""}, Result2), 
 
 	Result3 = Parser("3x69999x6"),
-	?assertMatch({ok, "3x69", "999x6"}, Result3), 
+	?assertEqual({ok, "3x69", "999x6"}, Result3), 
 
 	Result4 = Parser("x69999x6"),
-	?assertMatch({ok, "Nx69", "999x6"}, Result4), 
+	?assertEqual({ok, "Nx69", "999x6"}, Result4), 
 
 	assertError(Parser("3x6")),
 	assertError(Parser("X66zaz")).
 
 parse_repeat_times(_Config) ->
-	Parser = sparsely:repeat(?DIGIT(), 3),
+	Parser = sparsely:repeat(?DIGIT, 3),
 
 	Result = Parser("369"),
-	?assertMatch({ok, "369", ""}, Result), 
+	?assertEqual({ok, "369", ""}, Result), 
 
 	Result2 = Parser("369999x6"),
-	?assertMatch({ok, "369", "999x6"}, Result2), 
+	?assertEqual({ok, "369", "999x6"}, Result2), 
 
 	assertError(Parser("66")),
 	assertError(Parser("66zaz")).
@@ -166,28 +166,28 @@ parse_match(_Config) ->
 	Parser = sparsely:match("1-800"),
 
 	Result = Parser("1-800"),
-	?assertMatch({ok, "1-800", ""}, Result), 
+	?assertEqual({ok, "1-800", ""}, Result), 
 
 	Result2 = Parser("1-800-555-1212"),
-	?assertMatch({ok, "1-800", "-555-1212"}, Result2), 
+	?assertEqual({ok, "1-800", "-555-1212"}, Result2), 
 
 	assertError(Parser("1-801-555-1212")),
 	assertError(Parser("1-80")).
 
 parse_wrap(_Config) ->
-	Digits = ?DIGIT(),
+	Digit = ?DIGIT,
 
-	Parser = sparsely:wrap(sparsely:repeat(Digits),
+	Parser = sparsely:wrap(sparsely:repeat(Digit),
 				       fun({ok, Value, Rest}) -> {Integer, _} = string:to_integer(Value),
 								 {ok, Integer, Rest};
 					  (Any) -> Any
 				       end),
 
 	Result = Parser("3456"),
-	?assertMatch({ok, 3456, ""}, Result), 
+	?assertEqual({ok, 3456, ""}, Result), 
 
 	Result2 = Parser("3456y"),
-	?assertMatch({ok, 3456, "y"}, Result2), 
+	?assertEqual({ok, 3456, "y"}, Result2), 
 
 	assertError(Parser("x80")).
 
