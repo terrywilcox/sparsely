@@ -55,7 +55,7 @@ See dice_parser.erl for the function to create it.
 				       end).
 	{ok, {dice, {3, 6}}, ""} = EvalRoll("3d6").
 	{ok, {dice, {12, 20}}, ""} = EvalRoll("12d20").
-```erlang
+```
 
 
 
