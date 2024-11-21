@@ -19,20 +19,23 @@
 wrap(Parser, F) when is_function(F) ->
 	fun(S) -> F(Parser(S)) end.
 
-character(Chars) when is_list(Chars) ->
-	fun ([Character | Rest]) ->
-			case lists:member(Character, Chars) of
-				true -> {ok, Character, Rest};
-				_ -> {error, "no matching character"}
-			end;
+character(ValidChars) when is_list(ValidChars) orelse is_binary(ValidChars) ->
+	BinChars = iolist_to_binary(ValidChars),
+	fun (<<>>) ->
+			{error, "no matching character"};
 	    ([]) ->
-			{error, "no matching character"}
-	end;
-character(Chars) ->
-	character([Chars]).
+			{error, "no matching character"};
+	    (S) ->
+			BinS = iolist_to_binary(S),
+			<<ParseChar, Rest/binary>> = BinS,
+			case binary:match(BinChars, <<ParseChar>>) of
+				{_, 1} -> {ok, ParseChar, Rest};
+				_ -> {error, "no matching character"}
+			end
+	end.
 
 match(Chars) when is_list(Chars) ->
-	Parsers = [character(Char) || Char <- Chars],
+	Parsers = [character([Char]) || Char <- Chars],
 	chain(Parsers).
 
 repeat(Parser, Times) when is_integer(Times) ->
@@ -42,8 +45,8 @@ repeat(Parser, Times) when is_integer(Times) ->
 repeat(Parser) ->
 	fun(S) -> repeat_parse(S, Parser, []) end.
 
-repeat_parse([], _Parser, Acc) ->
-		{ok, lists:reverse(Acc), ""};
+repeat_parse(<<>>, _Parser, Acc) ->
+		{ok, lists:reverse(Acc), <<>>};
 repeat_parse(S, Parser, Acc) ->
 	case Parser(S) of
 		{error, Reason} -> case length(Acc) of
@@ -84,6 +87,7 @@ optional(Parser, Default) ->
 	fun(S) -> case Parser(S) of
 			  {error, _} -> {ok, Default, S};
 			  Any -> Any
-		  end end.
+		  end
+	end.
 
 
