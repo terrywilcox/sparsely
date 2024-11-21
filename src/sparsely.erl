@@ -50,8 +50,8 @@ repeat_parse(S, Parser, Acc) ->
 				      0 -> {error, Reason};
 				      _ ->{ok, lists:reverse(Acc), S}
 				   end;
-		{ok, ignore, Remainder} -> repeat_parse(Remainder, Parser, Acc);
-		{ok, Value, Remainder} -> repeat_parse(Remainder, Parser, [Value | Acc])
+		{ok, ignore, Rest} -> repeat_parse(Rest, Parser, Acc);
+		{ok, Value, Rest} -> repeat_parse(Rest, Parser, [Value | Acc])
 	end.
 
 one_of_parse(_S, []) ->
@@ -70,8 +70,8 @@ chain_parse(S, [], Acc) ->
 chain_parse(S, [Parser|Parsers], Acc) when is_function(Parser) ->
 	case Parser(S) of
 		{error, _} = Error -> Error;
-		{ok, ignore, Remainder} -> chain_parse(Remainder, Parsers, Acc);
-		{ok, Value, Remainder} -> chain_parse(Remainder, Parsers, [Value | Acc])
+		{ok, ignore, Rest} -> chain_parse(Rest, Parsers, Acc);
+		{ok, Value, Rest} -> chain_parse(Rest, Parsers, [Value | Acc])
 	end.
 
 chain(Parsers) when is_list(Parsers) ->
