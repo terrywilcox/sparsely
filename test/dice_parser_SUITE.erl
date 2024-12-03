@@ -99,5 +99,6 @@ expression(_Config) ->
 	?assertEqual({ok, {$*, {variable, "bob"}, 7}, <<>>}, Parser("(${bob}*7)")),
 	?assertEqual({ok, {$-, {dice, {10, 12}}, {variable, "bbb"}}, <<>>}, Parser("(10d12-${bbb})")),
 	?assertEqual({ok, {$+, 42, {$-, {dice, {3, 12}}, {variable, "bbb"}}}, <<>>}, Parser("(42+(3d12-${bbb}))")),
-	?assertEqual({ok, {$+, 42, {$-, {dice, {{variable, "x"}, 12}}, {variable, "bbb"}}}, <<>>}, Parser("(42+(${x}d12-${bbb}))")).
+	?assertEqual({ok, {$+, 42, {$-, {dice, {{variable, "x"}, 12}}, {variable, "bbb"}}}, <<>>}, Parser("(42+(${x}d12-${bbb}))")),
+	?assertEqual({ok, {$+, 42, {$-, {dice, {{variable, "x"}, 12}}, {variable, "bbb"}}}, <<>>}, Parser("(42 + (${x}d12 - ${bbb}))")).
 

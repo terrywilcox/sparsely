@@ -89,6 +89,12 @@ chain(Parsers) when is_list(Parsers) ->
 optional(Parser) ->
 	optional(Parser, ignore).
 
+optional(Parser, skip) ->
+	fun(S) -> case Parser(S) of
+			  {error, _} -> {ok, ignore, S};
+			  {ok, _, Rest} -> {ok, ignore, Rest}
+		  end
+	end;
 optional(Parser, Default) ->
 	fun(S) -> case Parser(S) of
 			  {error, _} -> {ok, Default, S};

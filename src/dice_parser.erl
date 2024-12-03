@@ -28,6 +28,9 @@ convert_to_fractional_float(Int) when is_integer(Int) ->
     Len = length(integer_to_list(Int)),
     Int / math:pow(10, Len).
 
+white_space() ->
+	sparsely:optional(sparsely:repeat(sparsely:character(" \t\n")), skip).
+
 operator() ->
 	sparsely:character("+-*/").
 
@@ -110,7 +113,15 @@ term() ->
 expression_parse(S) ->
 	LeftBracket = sparsely:character("("),
 	RightBracket = sparsely:character(")"),
-	Expression = sparsely:chain([LeftBracket, term(), operator(), term(), RightBracket]),
+	WhiteSpace = white_space(),
+	Expression = sparsely:chain([WhiteSpace, LeftBracket,
+				     WhiteSpace, term(),
+				     WhiteSpace, operator(),
+				     WhiteSpace, term(),
+				     WhiteSpace, RightBracket,
+				     WhiteSpace
+				    ]),
+
 	Wrapped = sparsely:wrap(Expression,
 				fun({ok, [$(, Left, Op, Right, $)], Rest}) ->
 						{ok, {Op, Left, Right}, Rest};
