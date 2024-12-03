@@ -17,7 +17,7 @@
 -include("include/sparsely.hrl").
 
 -export([all/0, init_per_suite/1, end_per_suite/1, init_per_testcase/2, end_per_testcase/2]).
--export([single_die/1, multiple_dice/1, variable/1, number_of_dice/1]).
+-export([single_die/1, multiple_dice/1, variable/1, number_of_dice/1, variable_sides/1]).
 -export([integer/1, float/1, number/1, term/1, expression/1]).
 
 
@@ -41,7 +41,7 @@ end_per_testcase(TestCase, _Config) ->
 all() ->
     [
      	integer, float, number, single_die, multiple_dice,
-	variable, number_of_dice, term, expression
+	variable, number_of_dice, term, expression, variable_sides
     ].
 
 %assertError(Error) ->
@@ -68,6 +68,7 @@ number_of_dice(_Config) ->
 	?assertEqual({ok, 3, <<"d6">>}, Parser("3d6")),
 	% TODO: optional with default does not convert S to binary
 	?assertEqual({ok, 1, "d6"}, Parser("d6")),
+	?assertEqual({ok, {variable, "x"}, <<"d6">>}, Parser("${x}d6")),
 	?assertEqual({ok, 10, <<"d6">>}, Parser("10d6")).
 
 single_die(_Config) ->
@@ -77,6 +78,10 @@ single_die(_Config) ->
 multiple_dice(_Config) ->
 	Parser = dice_parser:dice_term(),
 	?assertEqual({ok, {dice, {10, 12}}, <<>>}, Parser("10d12")).
+
+variable_sides(_Config) ->
+	Parser = dice_parser:dice_term(),
+	?assertEqual({ok, {dice, {10, {variable, "x"}}}, <<>>}, Parser("10d${x}")).
 
 variable(_Config) ->
 	Parser = dice_parser:variable(),
@@ -93,5 +98,6 @@ expression(_Config) ->
 	?assertEqual({ok, {$+, {dice, {10, 12}}, 3}, <<>>}, Parser("(10d12+3)")),
 	?assertEqual({ok, {$*, {variable, "bob"}, 7}, <<>>}, Parser("(${bob}*7)")),
 	?assertEqual({ok, {$-, {dice, {10, 12}}, {variable, "bbb"}}, <<>>}, Parser("(10d12-${bbb})")),
-	?assertEqual({ok, {$+, 42, {$-, {dice, {3, 12}}, {variable, "bbb"}}}, <<>>}, Parser("(42+(3d12-${bbb}))")).
+	?assertEqual({ok, {$+, 42, {$-, {dice, {3, 12}}, {variable, "bbb"}}}, <<>>}, Parser("(42+(3d12-${bbb}))")),
+	?assertEqual({ok, {$+, 42, {$-, {dice, {{variable, "x"}, 12}}, {variable, "bbb"}}}, <<>>}, Parser("(42+(${x}d12-${bbb}))")).
 

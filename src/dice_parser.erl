@@ -17,7 +17,8 @@
 -export[digit/0, digits/0, pos_int/0, dice/0, number_of_dice/0].
 -export[integer/0, float/0, operator/0, number/0].
 -export[dice_term/0, variable/0, term/0, expression/0].
--export[expression_parse/1, number_or_variable/0].
+-export[expression_parse/1, pos_int_or_variable/0].
+-export[number_or_variable/0].
 
 %% Simple dice notation takes the form of NdS, where N is the number of dice and
 %% S is the size of dice. So 3d6 is 3 six-sided dice. The 'd' can also be a 'D'.
@@ -86,25 +87,27 @@ dice() ->
 			    (Any) -> Any
 			 end).
 
+pos_int_or_variable() ->
+	sparsely:one_of([variable(), pos_int()]).
+
+number_or_variable() ->
+	sparsely:one_of([variable(), number()]).
+
 number_of_dice() ->
-	sparsely:optional(pos_int(), 1).
+	sparsely:optional(pos_int_or_variable(), 1).
 
 dice_term() ->
-	Roll = sparsely:chain([number_of_dice(), dice(), pos_int()]),
+	Roll = sparsely:chain([number_of_dice(), dice(), pos_int_or_variable()]),
 	sparsely:wrap(Roll,
 		      fun({ok, [NumberOfDice, dice, SidesOfDice], Rest}) ->
 				      {ok, {dice, {NumberOfDice, SidesOfDice}}, Rest};
 			 (Any) -> Any
 		      end).
 
-number_or_variable() ->
-	sparsely:one_of([number(), variable()]).
-
 term() ->
-	sparsely:one_of([expression(), variable(), dice_term(), number()]).
+	sparsely:one_of([expression(), dice_term(), number_or_variable()]).
 
 expression_parse(S) ->
-	ct:pal("Parsing expression: ~p~n", [S]),
 	LeftBracket = sparsely:character("("),
 	RightBracket = sparsely:character(")"),
 	Expression = sparsely:chain([LeftBracket, term(), operator(), term(), RightBracket]),
@@ -116,7 +119,7 @@ expression_parse(S) ->
 	Wrapped(S).
 
 expression() ->
-	sparsely:defer(dice_parser, expression_parse).
+	sparsely:parse_fun(dice_parser, expression_parse).
 
 
 

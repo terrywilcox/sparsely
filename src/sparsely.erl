@@ -15,12 +15,12 @@
 -module(sparsely).
 
 -export([one_of/1, chain/1, optional/1, optional/2, repeat/2, repeat/1,
-	 character/1, wrap/2, match/1, defer/2]).
+	 character/1, wrap/2, match/1, parse_fun/2]).
 
 wrap(Parser, F) when is_function(F) ->
 	fun(S) -> F(Parser(S)) end.
 
-defer(Module, Fun) ->
+parse_fun(Module, Fun) ->
 	fun(S) -> F = fun Module:Fun/1,
 		  F(S)
 	end.
