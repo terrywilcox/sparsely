@@ -21,6 +21,7 @@
 -export([parse_one_of/1, parse_no_chars/1, parse_one_of_none/1, parse_match/1]).
 -export([parse_repeat_times/1, parse_chain/1, parse_optional/1, parse_wrap/1]).
 -export([parse_optional_with_default/1, parse_optional_with_long_default/1]).
+-export([parse_defer/1, one_digit/1]).
 
 init_per_suite(Config) ->
     ct:pal("Initializing test suite...~n"),
@@ -45,7 +46,7 @@ all() ->
 	parse_one_of, parse_no_chars, parse_one_of_none,
 	parse_repeat_times, parse_chain, parse_optional,
 	parse_match, parse_wrap, parse_optional_with_default,
-	parse_optional_with_long_default
+	parse_optional_with_long_default, parse_defer
     ].
 
 assertError(Error) ->
@@ -200,6 +201,15 @@ parse_wrap(_Config) ->
 	?assertEqual({ok, 3456, <<"y">>}, Result2), 
 
 	assertError(Parser("x80")).
+
+one_digit(S) ->
+	Parser = ?DIGIT,
+	Parser(S).
+
+parse_defer(_Config) ->
+	Parser = sparsely:defer(sparsely_SUITE, one_digit),
+	Result = Parser("3456"),
+	?assertEqual({ok, $3, <<"456">>}, Result).
 
 
 

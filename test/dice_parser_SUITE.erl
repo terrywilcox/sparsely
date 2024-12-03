@@ -40,8 +40,8 @@ end_per_testcase(TestCase, _Config) ->
 % Test cases
 all() ->
     [
-     	integer, float, number, single_die, multiple_dice, term,
-	variable, number_of_dice, expression
+     	integer, float, number, single_die, multiple_dice,
+	variable, number_of_dice, term, expression
     ].
 
 %assertError(Error) ->
@@ -90,7 +90,8 @@ term(_Config) ->
 
 expression(_Config) ->
 	Parser = dice_parser:expression(),
-	?assertEqual({ok, {$+, {dice, {10, 12}}, 3}, <<>>}, Parser("10d12+3")),
-	?assertEqual({ok, {$*, {variable, "bob"}, 7}, <<>>}, Parser("${bob}*7")),
-	?assertEqual({ok, {$-, {dice, {10, 12}}, {variable, "bbb"}}, <<>>}, Parser("10d12-${bbb}")).
+	?assertEqual({ok, {$+, {dice, {10, 12}}, 3}, <<>>}, Parser("(10d12+3)")),
+	?assertEqual({ok, {$*, {variable, "bob"}, 7}, <<>>}, Parser("(${bob}*7)")),
+	?assertEqual({ok, {$-, {dice, {10, 12}}, {variable, "bbb"}}, <<>>}, Parser("(10d12-${bbb})")),
+	?assertEqual({ok, {$+, 42, {$-, {dice, {3, 12}}, {variable, "bbb"}}}, <<>>}, Parser("(42+(3d12-${bbb}))")).
 
