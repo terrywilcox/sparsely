@@ -14,56 +14,106 @@
 
 -module(dice_parser).
 
--export[parser/0].
+-export[digit/0, digits/0, pos_int/0, dice/0, number_of_dice/0].
+-export[integer/0, float/0, operator/0, number/0].
+-export[dice_term/0, variable/0, term/0, expression/0].
+-export[parser/0, number_or_variable/0].
 
 %% Simple dice notation takes the form of NdS, where N is the number of dice and
 %% S is the size of dice. So 3d6 is 3 six-sided dice. The 'd' can also be a 'D'.
 %%
 
-parser() ->
-	% create a parser to match a a single digit
-	Digit = sparsely:character("1234567890"),
-	{ok, $3, <<"45">>} = Digit("345"),
+convert_to_fractional_float(Int) when is_integer(Int) ->
+    Len = length(integer_to_list(Int)),
+    Int / math:pow(10, Len).
 
-	% create a parser to repeat the Digit parser until we run out of digits
-	Digits = sparsely:repeat(Digit),
-	{ok, "345", <<"x">>} = Digits("345x"),
+operator() ->
+	sparsely:character("+-*/").
 
-	% wrap Digits parser to turn its output value into an integer
-	PosInt = sparsely:wrap(Digits,
-			       fun({ok, Value, Rest}) -> {Integer, _} = string:to_integer(Value),
-							 {ok, Integer, Rest};
-				  (Any) -> Any
-			       end),
-	{ok, 345, <<"x">>} = PosInt("345x"),
-	
-	% PosInt can now match N or S in NdS, so let's move on to matching the D
-	% Match either upper or lower case d
+digit() ->
+	sparsely:character("1234567890").
+
+digits() ->
+	sparsely:repeat(digit()).
+
+alpha() ->
+	sparsely:character("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").
+
+pos_int() ->
+	sparsely:wrap(digits(),
+		      fun({ok, Value, Rest}) -> {Integer, _} = string:to_integer(Value),
+						{ok, Integer, Rest};
+			 (Any) -> Any
+		      end).
+
+variable() ->
+	VariableName = sparsely:repeat(alpha()),
+	VariableToken = sparsely:character("$"),
+	VariableParser = sparsely:chain([VariableToken, sparsely:character("{"),
+					 VariableName, sparsely:character("}")]),
+	sparsely:wrap(VariableParser,
+		      fun({ok, [_, _, Name, _], Rest}) -> {ok, {variable, Name}, Rest};
+			 (Any) -> Any
+		      end).
+
+integer() ->
+	Negative = sparsely:character("-"),
+	sparsely:wrap(sparsely:chain([sparsely:optional(Negative, 1), pos_int()]),
+		      fun({ok, [Sign, Value], Rest}) ->
+				      case Sign of
+					  $- -> {ok, -Value, Rest};
+					  _ -> {ok, Value, Rest}
+				      end;
+			 (Any) -> Any
+		      end).
+
+float() ->
+	sparsely:wrap(sparsely:chain([integer(), sparsely:character("."), pos_int()]),
+		      fun({ok, [Value, _, Fraction], Rest}) ->
+				      case (Value < 0) == true of
+					      true -> {ok, Value - convert_to_fractional_float(Fraction), Rest};
+					      _ -> {ok, Value + convert_to_fractional_float(Fraction), Rest}
+				      end;
+			 (Any) -> Any
+		      end).
+
+number() ->
+	sparsely:one_of([float(), integer()]).
+
+dice() ->	
 	D = sparsely:character("dD"),
-	{ok, $d, <<"6">>} = D("d6"),
+	sparsely:wrap(D, fun({ok, _, Rest}) -> {ok, dice, Rest};
+			    (Any) -> Any
+			 end).
 
-	% D just gives us the letter 'd'. We want the word 'dice'.
-	% Wrap D for a different value.
-	Dice = sparsely:wrap(D, fun({ok, _, Rest}) -> {ok, dice, Rest};
-				(Any) -> Any
-			     end),
-	{ok, dice, <<"4">>} = Dice("d4"),
+number_of_dice() ->
+	sparsely:optional(pos_int(), 1).
 
-	% now combine PosInt and Dice to parse NdS
-	% use "chain" to create a sequence of parsers
-	Roll = sparsely:chain([PosInt, Dice, PosInt]),
-	{ok, [3, dice, 6], <<>>} = Roll("3d6"),
-	
-	% treat 'dice' like an operator for when we want to evaluate
-	% wrap Roll to rearrange the output
-	EvalRoll = sparsely:wrap(Roll, fun({ok, [NumberOfDice, dice, SidesOfDice], Rest}) ->
-						      {ok, {dice, {NumberOfDice, SidesOfDice}}, Rest};
-					  (Any) -> Any
-				       end),
-	{ok, {dice, {3, 6}}, <<>>} = EvalRoll("3d6"),
-	{ok, {dice, {12, 20}}, <<>>} = EvalRoll("12d20"),
+dice_term() ->
+	Roll = sparsely:chain([number_of_dice(), dice(), pos_int()]),
+	sparsely:wrap(Roll,
+		      fun({ok, [NumberOfDice, dice, SidesOfDice], Rest}) ->
+				      {ok, {dice, {NumberOfDice, SidesOfDice}}, Rest};
+			 (Any) -> Any
+		      end).
 
-	EvalRoll.
+number_or_variable() ->
+	sparsely:one_of([number(), variable()]).
+
+term() ->
+	sparsely:one_of([variable(), dice_term(), number()]).
+
+expression() ->
+	Expression = sparsely:chain([term(), operator(), term()]),
+	sparsely:wrap(Expression,
+	     fun({ok, [Left, Op, Right], Rest}) ->
+		     {ok, {Op, Left, Right}, Rest};
+		(Any) -> Any
+	     end).
+
+parser() ->
+
+	sparsely:chain([term(), sparsely:optional(sparsely:repeat(expression()))]).
 
 
 
