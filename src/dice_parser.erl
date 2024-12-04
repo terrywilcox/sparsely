@@ -99,11 +99,38 @@ number_or_variable() ->
 number_of_dice() ->
 	sparsely:optional(pos_int_or_variable(), 1).
 
+keep_dice() ->
+	Keep = sparsely:wrap(sparsely:character("kK"),
+			     fun({ok, _, Rest}) -> {ok, keep, Rest};
+				(Any) -> Any
+			     end),
+
+	Highest = sparsely:wrap(sparsely:character("hH"),
+				fun({ok, _, Rest}) -> {ok, highest, Rest};
+				   (Any) -> Any
+				end),
+
+	Lowest = sparsely:wrap(sparsely:character("lL"),
+			       fun({ok, _, Rest}) -> {ok, lowest, Rest};
+				  (Any) -> Any
+			       end),
+
+	NumberToKeep = sparsely:optional(pos_int_or_variable(), 1),
+
+	sparsely:optional(
+		   sparsely:chain(
+		     [Keep, sparsely:optional(
+			      sparsely:one_of([Highest, Lowest]), highest),
+		      NumberToKeep]),
+		   ignore).
+
 dice_term() ->
-	Roll = sparsely:chain([number_of_dice(), dice(), pos_int_or_variable()]),
+	Roll = sparsely:chain([number_of_dice(), dice(), pos_int_or_variable(), keep_dice()]),
 	sparsely:wrap(Roll,
 		      fun({ok, [NumberOfDice, dice, SidesOfDice], Rest}) ->
 				      {ok, {dice, {NumberOfDice, SidesOfDice}}, Rest};
+		         ({ok, [NumberOfDice, dice, SidesOfDice, [keep, Parity, KeepNumber]], Rest}) ->
+				      {ok, {dice, {NumberOfDice, SidesOfDice}, {keep, {Parity, KeepNumber}}}, Rest};
 			 (Any) -> Any
 		      end).
 
@@ -130,6 +157,15 @@ expression_parse(S) ->
 	Wrapped(S).
 
 expression() ->
+	% This requires some explanation. This parser could be defined
+	% in the same manner as the other parsers: as an anonymous function.
+	% But because a term can be an expression and an expression can
+	% contain terms, we have a circular dependency which results
+	% in a recursive definition. If we do this at parser/anonymous function
+	% creation time, we go into an infinite recursion loop.
+	% Instead we define the parser as a named function that, when called,
+	% creates a new parser that calls the named function recursively,
+	% avoiding the infinite recursion loop.
 	sparsely:parse_fun(dice_parser, expression_parse).
 
 

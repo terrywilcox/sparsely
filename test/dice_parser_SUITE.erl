@@ -18,7 +18,7 @@
 
 -export([all/0, init_per_suite/1, end_per_suite/1, init_per_testcase/2, end_per_testcase/2]).
 -export([single_die/1, multiple_dice/1, variable/1, number_of_dice/1, variable_sides/1]).
--export([integer/1, float/1, number/1, term/1, expression/1]).
+-export([integer/1, float/1, number/1, term/1, expression/1, keep/1]).
 
 
 init_per_suite(Config) ->
@@ -41,7 +41,8 @@ end_per_testcase(TestCase, _Config) ->
 all() ->
     [
      	integer, float, number, single_die, multiple_dice,
-	variable, number_of_dice, term, expression, variable_sides
+	variable, number_of_dice, term, expression, variable_sides,
+	keep
     ].
 
 %assertError(Error) ->
@@ -82,6 +83,12 @@ multiple_dice(_Config) ->
 variable_sides(_Config) ->
 	Parser = dice_parser:dice_term(),
 	?assertEqual({ok, {dice, {10, {variable, "x"}}}, <<>>}, Parser("10d${x}")).
+
+keep(_Config) ->
+	Parser = dice_parser:dice_term(),
+	?assertEqual({ok, {dice, {10, 6}, {keep, {highest, 1}}}, <<>>}, Parser("10d6kh1")),
+	?assertEqual({ok, {dice, {10, 6}, {keep, {highest, 1}}}, <<>>}, Parser("10d6k1")),
+	?assertEqual({ok, {dice, {10, 6}, {keep, {lowest, 3}}}, <<>>}, Parser("10d6kl3")).
 
 variable(_Config) ->
 	Parser = dice_parser:variable(),
