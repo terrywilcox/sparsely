@@ -57,5 +57,24 @@ See dice_parser.erl for the function to create it.
 	{ok, {dice, {12, 20}}, <<>>} = EvalRoll("12d20").
 ```
 
+See dice_parser.erl for a more full featured example.
+
+About parsing nested sections with recursion: sparsely parsers are anonymous
+functions, which makings calling themselves recursively difficult. It has
+the additional benefit of making it easy to create infinite recursion loops
+while building the parsers.
+
+To avoid this, consider the "expression" parser in the dice_parser example.
+It defers the actual creation of the parser function until it is needed, which
+avoids the infinite recursion problem.
+
+The pattern is simple: use sparsely:parse_function/2 to create a parser that
+will call Module:Function/1 when it is called. That named function can then
+call itself recursively, avoiding the problem of anonymous functions calling
+themselves recursively.
+
+
+
+
 
 
