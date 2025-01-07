@@ -21,7 +21,7 @@
 -export([parse_one_of/1, parse_no_chars/1, parse_one_of_none/1, parse_match/1]).
 -export([parse_repeat_times/1, parse_chain/1, parse_optional/1, parse_wrap/1]).
 -export([parse_optional_with_default/1, parse_optional_with_long_default/1]).
--export([parse_fun/1, one_digit/1, parse_optional_skip/1]).
+-export([parse_fun/1, one_digit/1, parse_skip/1]).
 
 init_per_suite(Config) ->
     ct:pal("Initializing test suite...~n"),
@@ -47,7 +47,7 @@ all() ->
 	parse_repeat_times, parse_chain, parse_optional,
 	parse_match, parse_wrap, parse_optional_with_default,
 	parse_optional_with_long_default, parse_fun,
-	parse_optional_skip
+	parse_skip
     ].
 
 assertError(Error) ->
@@ -132,11 +132,11 @@ parse_optional(_Config) ->
 	assertError(Parser("3x6")),
 	assertError(Parser("X66zaz")).
 
-parse_optional_skip(_Config) ->
+parse_skip(_Config) ->
 	Digit = ?DIGIT,
 	Lower = ?LOWERCASE,
-	Optional = sparsely:optional(Digit, skip),
-	Parser = sparsely:chain([Optional, Lower, Digit, Digit]),
+	Skip = sparsely:skip(Digit),
+	Parser = sparsely:chain([Skip, Lower, Digit, Digit]),
 
 	Result = Parser("x69"),
 	?assertEqual({ok, "x69", <<>>}, Result), 

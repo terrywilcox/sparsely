@@ -15,7 +15,7 @@
 -module(sparsely).
 
 -export([one_of/1, chain/1, optional/1, optional/2, repeat/2, repeat/1,
-	 character/1, wrap/2, match/1, parse_fun/2]).
+	 character/1, wrap/2, match/1, parse_fun/2, skip/1]).
 
 wrap(Parser, F) when is_function(F) ->
 	fun(S) -> F(Parser(S)) end.
@@ -99,6 +99,13 @@ optional(Parser, Default) ->
 	fun(S) -> case Parser(S) of
 			  {error, _} -> {ok, Default, S};
 			  Any -> Any
+		  end
+	end.
+
+skip(Parser) ->
+	fun(S) -> case Parser(S) of
+			  {error, _} -> {ok, ignore, S};
+			  {ok, _, Rest} -> {ok, ignore, Rest}
 		  end
 	end.
 
