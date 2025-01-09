@@ -65,11 +65,11 @@ dice(_Config) ->
     ?assertEqual({ok, {dice, {{variable, "x"}, {variable, "y"}}}, <<>>}, Parser("${x}d${y}")).
 
 explode(_Config) ->
-    Parser = dice_parser:explode(),
-    ?assertEqual({ok, [explode], <<"">>}, Parser("!")).
-
-%        ?assertEqual({ok, [explode], <<"4">>}, Parser("!4")),
-%        ?assertEqual({ok, {explode, {dice, {{variable, "x"}, {variable, "y"}}}}, <<>>}, Parser("${x}d${y}!")).
+    Parser = dice_parser:parser(),
+    ?assertEqual({ok, {explode, {maximum, {dice, {3, 6}}}}, <<>>}, Parser("3d6!")),
+    ?assertEqual({ok, {explode, {4, {dice, {3, 6}}}}, <<>>}, Parser("3d6!4")),
+    ?assertEqual({ok, {explode, {maximum, {dice, {{variable, "x"}, {variable, "y"}}}}}, <<>>},
+                 Parser("${x}d${y}!")).
 
 keep(_Config) ->
     Parser = dice_parser:parser(),
@@ -77,8 +77,8 @@ keep(_Config) ->
     ?assertEqual({ok, {keep, {highest, 1}, {dice, {10, 6}}}, <<>>}, Parser("10d6k1")),
     ?assertEqual({ok, {keep, {lowest, 3}, {dice, {10, 6}}}, <<>>}, Parser("10d6kl3")),
     ?assertEqual({ok, {drop, {lowest, 3}, {dice, {10, 6}}}, <<>>}, Parser("10d6dl3")),
-    ?assertEqual({ok, {drop, {lowest, 3}, {explode, {maximum, {dice, {10, 6}}}}}, <<>>},
-                 Parser("10d6!dl3")).
+    ?assertEqual({ok, {drop, {lowest, 3}, {explode, {4, {dice, {10, 6}}}}}, <<>>},
+                 Parser("10d6!4dl3")).
 
 variable(_Config) ->
     Parser = dice_parser:variable(),

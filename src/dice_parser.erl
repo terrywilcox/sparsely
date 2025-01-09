@@ -152,7 +152,7 @@ number_of_dice() ->
     sparsely:optional(dice_const(), 1).
 
 explode() ->
-    ExplodePoint = sparsely:optional(pos_int()),
+    ExplodePoint = sparsely:optional(dice_const()),
     Explode = sparsely:character("!"),
     ExplodeWrap =
         sparsely:wrap(Explode,
