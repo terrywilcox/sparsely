@@ -21,7 +21,7 @@
 -export([number_or_variable/0, explode/0]).
 -export([expression_term_parse/1, expression_factor_parse/1]).
 -export([bracketed_expression_parse/1]).
--export([parser/0, dice_wrapper/1]).
+-export([parser/0, dice_wrapper/1, target_number/0]).
 
 %% Simple dice notation takes the form of NdS, where N is the number of dice and
 %% S is the size of dice. So 3d6 is 3 six-sided dice. The 'd' can also be a 'D'.
@@ -166,6 +166,23 @@ explode() ->
 
     sparsely:optional(ExplodeChain).
 
+target_number() ->
+    Target = dice_const(),
+    Gte = sparsely:character(">"),
+    Lte = sparsely:character("<"),
+    Choice =
+        sparsely:wrap(
+            sparsely:one_of([Gte, Lte]),
+            fun ({ok, $>, Rest}) ->
+                    {ok, gte, Rest};
+                ({ok, $<, Rest}) ->
+                    {ok, lte, Rest};
+                ({error, _} = Error) ->
+                    Error
+            end),
+    TargetChain = sparsely:chain([Choice, Target]),
+    sparsely:optional(TargetChain).
+
 keep_dice() ->
     Keep =
         sparsely:wrap(
@@ -216,7 +233,7 @@ dice_roll() ->
     sparsely:chain([number_of_dice(), dice(), dice_const()]).
 
 dice_term() ->
-    Roll = sparsely:chain([dice_roll(), explode(), keep_dice()]),
+    Roll = sparsely:chain([dice_roll(), explode(), keep_dice(), target_number()]),
     F = fun dice_parser:dice_wrapper/1,
     sparsely:wrap(Roll, F).
 
@@ -237,13 +254,20 @@ dice_wrapper([], Acc) ->
             undefined ->
                 Roll;
             Point ->
-                {explode, {Point, Roll}}
+                {explode, Point, Roll}
         end,
-    case proplists:get_value(keep, Acc, undefined) of
+    Roll3 =
+        case proplists:get_value(keep, Acc, undefined) of
+            undefined ->
+                Roll2;
+            {Keep, Parity, Number} ->
+                {Keep, {Parity, Number}, Roll2}
+        end,
+    case proplists:get_value(target, Acc, undefined) of
         undefined ->
-            Roll2;
-        {Keep, Parity, Number} ->
-            {Keep, {Parity, Number}, Roll2}
+            Roll3;
+        Target ->
+            {target, Target, Roll3}
     end;
 dice_wrapper([[NumberOfDice, dice, SidesOfDice] | Rest], Acc) ->
     dice_wrapper(Rest, [{dice, {NumberOfDice, SidesOfDice}} | Acc]);
@@ -252,7 +276,9 @@ dice_wrapper([[explode, Point] | Rest], Acc) ->
 dice_wrapper([[explode] | Rest], Acc) ->
     dice_wrapper(Rest, [{explode, maximum} | Acc]);
 dice_wrapper([[Keep, Parity, Number] | Rest], Acc) when Keep == keep; Keep == drop ->
-    dice_wrapper(Rest, [{keep, {Keep, Parity, Number}} | Acc]).
+    dice_wrapper(Rest, [{keep, {Keep, Parity, Number}} | Acc]);
+dice_wrapper([[Type, Value] | Rest], Acc) when Type == lte; Type == gte ->
+    dice_wrapper(Rest, [{target, {Type, Value}} | Acc]).
 
 %% expression_factor is an expression in brackets, a dice_term, or a const
 %% expression_term is an expression_factor followed by zero or more pairs of a multiplicative_operator and another expression_factor

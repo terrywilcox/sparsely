@@ -20,6 +20,7 @@
          end_per_testcase/2]).
 -export([variable/1, dice/1, explode/1]).
 -export([integer/1, float/1, number/1, expression/1, keep/1]).
+-export([target_number/1]).
 
 init_per_suite(Config) ->
     ct:pal("Initializing test suite...~n"),
@@ -39,7 +40,7 @@ end_per_testcase(TestCase, _Config) ->
 
 % Test cases
 all() ->
-    [integer, float, number, explode, variable, dice, expression, keep].
+    [integer, float, number, explode, variable, dice, expression, keep, target_number].
 
 integer(_Config) ->
     Parser = dice_parser:parser(),
@@ -66,9 +67,9 @@ dice(_Config) ->
 
 explode(_Config) ->
     Parser = dice_parser:parser(),
-    ?assertEqual({ok, {explode, {maximum, {dice, {3, 6}}}}, <<>>}, Parser("3d6!")),
-    ?assertEqual({ok, {explode, {4, {dice, {3, 6}}}}, <<>>}, Parser("3d6!4")),
-    ?assertEqual({ok, {explode, {maximum, {dice, {{variable, "x"}, {variable, "y"}}}}}, <<>>},
+    ?assertEqual({ok, {explode, maximum, {dice, {3, 6}}}, <<>>}, Parser("3d6!")),
+    ?assertEqual({ok, {explode, 4, {dice, {3, 6}}}, <<>>}, Parser("3d6!4")),
+    ?assertEqual({ok, {explode, maximum, {dice, {{variable, "x"}, {variable, "y"}}}}, <<>>},
                  Parser("${x}d${y}!")).
 
 keep(_Config) ->
@@ -77,8 +78,15 @@ keep(_Config) ->
     ?assertEqual({ok, {keep, {highest, 1}, {dice, {10, 6}}}, <<>>}, Parser("10d6k1")),
     ?assertEqual({ok, {keep, {lowest, 3}, {dice, {10, 6}}}, <<>>}, Parser("10d6kl3")),
     ?assertEqual({ok, {drop, {lowest, 3}, {dice, {10, 6}}}, <<>>}, Parser("10d6dl3")),
-    ?assertEqual({ok, {drop, {lowest, 3}, {explode, {4, {dice, {10, 6}}}}}, <<>>},
+    ?assertEqual({ok, {drop, {lowest, 3}, {explode, 4, {dice, {10, 6}}}}, <<>>},
                  Parser("10d6!4dl3")).
+
+target_number(_Config) ->
+    Parser = dice_parser:parser(),
+    ?assertEqual({ok, {target, {gte, 3}, {keep, {highest, 1}, {dice, {10, 6}}}}, <<>>},
+                 Parser("10d6kh1>3")),
+    ?assertEqual({ok, {target, {lte, 1}, {keep, {lowest, 1}, {dice, {10, 6}}}}, <<>>},
+                 Parser("10d6kl1<1")).
 
 variable(_Config) ->
     Parser = dice_parser:variable(),
